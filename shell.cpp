@@ -13,7 +13,7 @@ bool isMatch(string reg, string command)
 	regex_t re;
 	int status;
 
-	if (regcomp(&re, ECHO.c_str(), REG_EXTENDED|REG_NOSUB) != 0)
+	if (regcomp(&re, reg.c_str(), REG_EXTENDED|REG_NOSUB) != 0)
 	{
 		cout << "Issue initializing regex." << endl;
 		return 1;
