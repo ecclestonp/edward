@@ -1,11 +1,5 @@
-#include <iostream>
-#include <string>
-#include <regex.h>
-#include <stdlib.h>
-#include <cstring>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <stdio.h>
+#include "parser.h"
 
 // Maximum number of command line arguments to parse
 #define MAXARGS 10
@@ -15,8 +9,9 @@ using namespace std;
 // Builtin regexes
 string ECHO = "\\s*echo";
 string EXIT = "\\s*exit";
-string ALL_ARGS = "\\s*echo\\s*(.*)$";
 string NON_BUILTIN= "\\s*(\\S+)\\s+(.*)*$";
+
+bool which(char *name, string *out);
 
 bool isMatch(string reg, string command)
 {
@@ -34,37 +29,55 @@ bool isMatch(string reg, string command)
 	return !status;
 }
 
-bool which(char *name)
+bool check_exists(const char *name)
 {
-	char *env = getenv("PATH");
-	char *pch;
 	struct stat filestat;
 
-	pch = strtok(env, ":");
-	while (pch != NULL)
-	{
-		char *tempPath = (char *)malloc(255);
-		size_t index = 0;
+	return (stat(name, &filestat) == 0) ? true : false;
+}
 
-		strncpy(tempPath, pch, strlen(pch));
-		index += strlen(pch);
-		strncpy(tempPath + index, "/", 1);
-		index += 1;
-		strncpy(tempPath + index, name, strlen(name));
-		index += strlen(name);
-		tempPath[index] = 0;
+bool which(char *name, string *out)
+{
+	size_t off;
+	string env;
+	char *envp;
 
-		// stat the file in the dir
-		if(!stat(tempPath, &filestat))
-		{
-			strcpy(name, tempPath);
+	if (name[0] == '/' || name[0] == '.') {
+		if (check_exists(name)) {
+			*out = name;
 			return true;
 		}
-		free(tempPath);
-		pch = strtok(NULL, ":");
+
+		return false;
 	}
 
-	
+	envp = getenv("PATH");
+
+	if (envp == NULL)
+		return false;
+
+	env = envp;
+
+	off = env.find_first_of(':');
+
+	while (off != string::npos) {
+		string tenv;
+
+		off = env.find_first_of(':');
+
+		tenv = env.substr(0, off);
+		env = env.substr(off + 1);
+
+		tenv.append("/");
+		tenv.append(name);
+
+		if (check_exists(tenv.c_str())) {
+			*out = tenv;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void ex(string command)
@@ -84,6 +97,7 @@ void ex(string command)
 	{
 		char *executable = (char *)malloc(255);
 		char *args = (char *)malloc(255);
+		string path;
 		for (int x = 1; x < numGroups && arguments[x].rm_so != -1; x++)
 		{
 			size_t tempSize = (arguments[x].rm_eo - arguments[x].rm_so);
@@ -91,57 +105,75 @@ void ex(string command)
 
 			if(x == 1) // Copy the first group into the executable buffer
 				tempStr = executable;
-			else // Copy the other group into the args buffer
+			else	   // Copy the other group into the args buffer
 				tempStr = args;
 
 			strncpy(tempStr, command.c_str() + arguments[x].rm_so, tempSize);
 			tempStr[tempSize] = 0;
 		}
-
+		
 		// Locate the full path to the executable
-		if(!which(executable))
+		if(!which(executable, &path))
 		{
 			cout << "Could not locate " << executable << endl;
 			return;
 		}
 
+		char **arguments;
+		Parser p(args);
+
+		//pid_t pid = fork();
+		//if(!pid) // child
 		// Execute it.
-		execl(executable, executable, args, NULL);
+		// If we were able to parse the arguments
+		if(p.Parse(&arguments))
+		{
+			char *environ[] = { NULL };
+			cout << "About to execute: " << path.c_str() << endl;
+			execve(path.c_str(), arguments, environ);
+		}
+		else
+		{
+			cout << "Unable to execute because you fucked up." << endl;
+		}
 	}
 
 	// Free the newly allocated memory
 	regfree(&re);
-	free(arguments);
+	//free(arguments);
 }
 
 int echo(string command)
 {
 	regex_t re;
 	int status;
-	size_t numGroups = re.re_nsub + 1;
-	regmatch_t *arguments = (regmatch_t *)malloc(sizeof(regmatch_t) * numGroups);
+	size_t numGroups;
+	regmatch_t *arguments;
 
-	if (regcomp(&re, ALL_ARGS.c_str(), REG_EXTENDED) != 0)
+
+	if (regcomp(&re, ALL_ARGS, REG_EXTENDED) != 0)
 		return 1;
+
+	numGroups = re.re_nsub + 1;
+	arguments = (regmatch_t *)malloc(sizeof(regmatch_t) * numGroups);
+
+	if (arguments == NULL) {
+		cerr << "malloc broke" << endl;
+		return 1;
+	}
 
 	status = regexec(&re, command.c_str(), numGroups, arguments, 0);
 
 	if(!status) // If it was located
 	{
 		for (int x = 1; x < numGroups && arguments[x].rm_so != -1; x++)
-		{
-			size_t tempSize = (arguments[x].rm_eo - arguments[x].rm_so);
-			char *tempStr = (char *)malloc(sizeof(char *) * (tempSize + 1));
-			strncpy(tempStr, command.c_str() + arguments[x].rm_so, tempSize);
-			tempStr[tempSize] = 0;
-			cout << tempStr << endl;
-			free(tempStr);
-		}
+			cout << command.c_str() + arguments[x].rm_so << endl;
 	}
 
 	// Free the newly allocated memory
 	regfree(&re);
 	free(arguments);
+	return 0;
 }
 
 int main(void)

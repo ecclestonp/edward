@@ -2,7 +2,7 @@
 
 
 all:
-	g++ shell.cpp -o edward
+	g++ *.h *.cpp -o edward
 
 clean:
 	rm -f edward *o
