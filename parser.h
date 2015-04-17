@@ -21,7 +21,7 @@ class Parser {
 
 	public:
 		Parser(char *argStrn);
-		bool Parse(char ***arguments);
+		bool Parse(char ***arguments, string path);
 };
 
 #endif

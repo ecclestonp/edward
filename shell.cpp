@@ -126,7 +126,7 @@ void ex(string command)
 		//if(!pid) // child
 		// Execute it.
 		// If we were able to parse the arguments
-		if(p.Parse(&arguments))
+		if(p.Parse(&arguments, path))
 		{
 			char *environ[] = { NULL };
 			cout << "About to execute: " << path.c_str() << endl;

@@ -45,9 +45,10 @@ Parser::Parser(char *argStrn)
 /*
 	brief: This function will create an array of char*'s, and set the "arguments" to the reference to that.
 	given: arguments - uninitialized triple pointer
+	given: path - the absolute path to the executable being executed
 	WARNING: Does not free the memory it allocates
 */
-bool Parser::Parse(char ***arguments)
+bool Parser::Parse(char ***arguments, string path)
 {
 	if(!args.size())
 		return false;
@@ -62,7 +63,10 @@ bool Parser::Parse(char ***arguments)
 		tempArg[args.at(x).size()] = 0;//add null terminator
 		argArray[x + 1] = tempArg;
 	}
-	argArray[0] = NULL;
+
+	argArray[0] = (char *)malloc(path.size() + 1);
+	strcpy(argArray[0], path.c_str());
+	argArray[0][path.size()] = 0; // Add null terminator
 	argArray[args.size() + 1] = NULL;
 
 	*arguments = argArray;
