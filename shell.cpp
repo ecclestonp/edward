@@ -126,7 +126,7 @@ void ex(string command)
 			return; 
 		regmatch_t *QC_filename = (regmatch_t *)malloc(sizeof(regmatch_t)*2);
 		
-		status = regexec(&re, path, 2, QC_filename, 0);
+		status = regexec(&re, path, (size_t) 2, QC_filename, 0);
 
 		if(!status) //If path ends in .cpp or .c
 		{
