@@ -10,6 +10,7 @@ using namespace std;
 string ECHO = "\\s*echo";
 string EXIT = "\\s*exit";
 string NON_BUILTIN= "\\s*(\\S+)\\s+(.*)*$";
+string Q_COMPILE= "(\\S+)(\\.cpp$|\\.c$)";
 
 bool which(char *name, string *out);
 
@@ -119,6 +120,20 @@ void ex(string command)
 			return;
 		}
 
+		//If .cpp or .c then QuickCompile
+
+		if (regcomp(&re, Q_COMPILE.c_str(), REG_EXTENDED) != 0)
+			return; 
+		regmatch_t *QC_filename = (regmatch_t *)malloc(sizeof(regmatch_t)*2);
+		
+		status = regexec(&re, path, 2, QC_filename, 0);
+
+		if(!status) //If path ends in .cpp or .c
+		{
+			string CompilerPath; //to save the path of the compiler
+			bool QC_flag = true; //enter quick compile mode
+		}
+		
 		char **arguments;
 		Parser p(args);
 
@@ -129,8 +144,30 @@ void ex(string command)
 		if(p.Parse(&arguments, path))
 		{
 			char *environ[] = { NULL };
-			cout << "About to execute: " << path.c_str() << endl;
-			execve(path.c_str(), arguments, environ);
+
+			if (!QC_flag)
+			{
+				cout << "About to execute: " << path.c_str() << endl;
+				execve(path.c_str(), arguments, environ);
+			}
+			else
+			{
+				// Locate the full path to the executable and save the path to QCpath if it exists
+				if(!which("g++", &CompilerPath))
+				{
+					cout << "Could not locate compiler" << endl;
+					return;
+				}
+
+				//Param CompilerPath -- gcc/g++
+				//Param path -- path to sourcefile	
+				//if compiling is successful then execute binary file 
+				if(!execve(CompilerPath.c_str(), path.c_str(), environ)); 
+				{	
+					execve(QC_filename[0], arguments, environ);
+				}			
+			}
+
 		}
 		else
 		{
