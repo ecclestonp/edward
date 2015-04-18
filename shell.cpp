@@ -6,6 +6,8 @@
 
 using namespace std;
 
+string COMPILER = "g++";
+
 // Builtin regexes
 string ECHO = "\\s*echo";
 string EXIT = "\\s*exit";
@@ -153,9 +155,11 @@ void ex(string command)
 			else
 			{
 				string CompilerPath; //to save the path of the compiler
+				char **path_as_arg;
+				path_as_arg = path.c_str();
 				
 				// Locate the full path to the executable and save the path to QCpath if it exists
-				if(!which("g++", &CompilerPath))
+				if(!which(COMPILER.c_str(), &CompilerPath))
 				{
 					cout << "Could not locate compiler" << endl;
 					return;
@@ -164,7 +168,7 @@ void ex(string command)
 				//Param CompilerPath -- gcc/g++
 				//Param path -- path to sourcefile	
 				//if compiling is successful then execute binary file 
-				if(!execve(CompilerPath.c_str(), path.c_str(), environ)); 
+				if(!execve(CompilerPath.c_str(), path_as_arg, environ)); 
 				{	
 		
 					execve(path.substr((size_t)QC_Offsets[0].rm_so, (size_t)QC_Offsets[0].rm_eo - QC_Offsets[0].rm_so), arguments, environ);
