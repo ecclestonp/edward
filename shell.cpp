@@ -154,7 +154,7 @@ void ex(string command)
 			{
 				char **path_as_arg;
 				char *compiler;
-				strcpy(*path_as_arg, path);
+				strcpy(*path_as_arg, path.c_str());
 				strcpy(compiler, "g++");
 				string CompilerPath; //to save the path of the compiler
 				
