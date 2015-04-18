@@ -85,6 +85,7 @@ void ex(string command)
 {
 	regex_t re;
 	int status;
+	bool QC_flag;
 
 	if (regcomp(&re, NON_BUILTIN.c_str(), REG_EXTENDED) != 0)
 		return;
@@ -124,14 +125,13 @@ void ex(string command)
 
 		if (regcomp(&re, Q_COMPILE.c_str(), REG_EXTENDED) != 0)
 			return; 
-		regmatch_t *QC_filename = (regmatch_t *)malloc(sizeof(regmatch_t)*2);
+		regmatch_t *QC_Offsets = (regmatch_t *)malloc(sizeof(regmatch_t)*2);
 		
-		status = regexec(&re, path, (size_t) 2, QC_filename, 0);
+		status = regexec(&re, path.c_str(), (size_t) 2, QC_Offsets, 0);
 
 		if(!status) //If path ends in .cpp or .c
 		{
-			string CompilerPath; //to save the path of the compiler
-			bool QC_flag = true; //enter quick compile mode
+			QC_flag = true; //enter quick compile mode
 		}
 		
 		char **arguments;
@@ -152,6 +152,8 @@ void ex(string command)
 			}
 			else
 			{
+				string CompilerPath; //to save the path of the compiler
+				
 				// Locate the full path to the executable and save the path to QCpath if it exists
 				if(!which("g++", &CompilerPath))
 				{
@@ -164,7 +166,8 @@ void ex(string command)
 				//if compiling is successful then execute binary file 
 				if(!execve(CompilerPath.c_str(), path.c_str(), environ)); 
 				{	
-					execve(QC_filename[0], arguments, environ);
+		
+					execve(path.substr((size_t)QC_Offsets[0].rm_so, (size_t)QC_Offsets[0].rm_eo - QC_Offsets[0].rm_so), arguments, environ);
 				}			
 			}
 
