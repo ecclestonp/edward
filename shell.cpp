@@ -7,9 +7,11 @@
 using namespace std;
 
 // Builtin regexes
-string ECHO = "\\s*echo";
+string CD = "\\s*cd";
 string EXIT = "\\s*exit";
 string NON_BUILTIN= "\\s*(\\S+)\\s+(.*)*$";
+
+string PWD = getenv("HOME");
 
 bool which(char *name, string *out);
 
@@ -129,12 +131,11 @@ void ex(string command)
 		if(p.Parse(&arguments, path))
 		{
 			char *environ[] = { NULL };
-			cout << "About to execute: " << path.c_str() << endl;
 			execve(path.c_str(), arguments, environ);
 		}
 		else
 		{
-			cout << "Unable to execute because you fucked up." << endl;
+			cout << "Unable to locate executable." << endl;
 		}
 	}
 
@@ -143,37 +144,9 @@ void ex(string command)
 	//free(arguments);
 }
 
-int echo(string command)
+void cd(string command)
 {
-	regex_t re;
-	int status;
-	size_t numGroups;
-	regmatch_t *arguments;
-
-
-	if (regcomp(&re, ALL_ARGS, REG_EXTENDED) != 0)
-		return 1;
-
-	numGroups = re.re_nsub + 1;
-	arguments = (regmatch_t *)malloc(sizeof(regmatch_t) * numGroups);
-
-	if (arguments == NULL) {
-		cerr << "malloc broke" << endl;
-		return 1;
-	}
-
-	status = regexec(&re, command.c_str(), numGroups, arguments, 0);
-
-	if(!status) // If it was located
-	{
-		for (int x = 1; x < numGroups && arguments[x].rm_so != -1; x++)
-			cout << command.c_str() + arguments[x].rm_so << endl;
-	}
-
-	// Free the newly allocated memory
-	regfree(&re);
-	free(arguments);
-	return 0;
+	cout << "home dir is " << PWD << endl;
 }
 
 int main(void)
@@ -189,9 +162,9 @@ int main(void)
 		getline(cin, command);
 		done = isMatch(EXIT, command);
 
-		if (isMatch(ECHO, command))
+        if (isMatch(CD, command))
 		{
-			echo(command);
+			cd(command);
 		}
 		else if(!done) // not a builtin
 		{
