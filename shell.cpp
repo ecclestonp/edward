@@ -168,7 +168,7 @@ void ex(string command)
 				//Param CompilerPath -- gcc/g++
 				//Param path -- path to sourcefile	
 				//if compiling is successful then execute binary file 
-				if(!execve(CompilerPath.c_str(), path_as_arg, environ)); 
+				if(!execve(CompilerPath.c_str(), path_as_arg, environ)) 
 				{	
 		
 					execve(path.substr((size_t)QC_Offsets[0].rm_so, (size_t)QC_Offsets[0].rm_eo - QC_Offsets[0].rm_so).c_str(), arguments, environ);
