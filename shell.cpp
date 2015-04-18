@@ -152,13 +152,14 @@ void ex(string command)
 			}
 			else
 			{
-				string CompilerPath; //to save the path of the compiler
 				char **path_as_arg;
-				*path_as_arg = path.c_str();
-				string compiler = "g++";
+				char *compiler;
+				strcpy(*path_as_arg, path);
+				strcpy(compiler, "g++");
+				string CompilerPath; //to save the path of the compiler
 				
 				// Locate the full path to the executable and save the path to QCpath if it exists
-				if(!which(compiler.c_str(), &CompilerPath))
+				if(!which(compiler, &CompilerPath))
 				{
 					cout << "Could not locate compiler" << endl;
 					return;
