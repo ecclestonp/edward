@@ -50,11 +50,27 @@ Parser::Parser(char *argStrn)
 */
 bool Parser::Parse(char ***arguments, string path)
 {
-	if(!args.size())
-		return false;
 
-	// + 2 for extra nulls
+
+	// +1 for null +1 for path in first index = +2
 	char **argArray = (char **)malloc((args.size() + 2) * sizeof(char *));
+
+	if(!args.size())
+		
+		//arguments must always start with a path arg even when there is no other args
+		//allocate memory for a path and a null terminator in the first index
+		argArray[0] = (char*)malloc(path.size() + 1);
+		//put the path as the first argument in the arg array
+		strcpy(argArray[0], path.c_str());
+		//go to the end of the first index (end of the path) and terminate it
+		argArray[0][path.size()] = 0;
+		//fill the last index in the array with null
+		argArray[args.size() +1] = NULL;
+		//store argArray
+		*arguments = argArray;
+
+		return true;
+
 
 	for(int x = 0; x < args.size(); x++)
 	{
