@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include "parser.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 // Maximum number of command line arguments to parse
 #define MAXARGS 10
@@ -7,12 +12,14 @@
 using namespace std;
 
 // Builtin regexes
-string CD = "\\s*cd";
-string EXIT = "\\s*exit";
-string NON_BUILTIN= "\\s*(\\S+)\\s*(.*)*$";
+string CD = "^\\s*cd\\s+(\\S+)$";
+string PWD_R = "^\\s*pwd";
+string EXIT = "^\\s*exit";
+string NON_BUILTIN_WITH_ARGS = "^\\s*(\\S+)\\s*(.*)+$";
+string NON_BUILTIN_WITHOUT_ARGS = "^\\s*(\\S+)\\s*$";
 string Q_COMPILE= "(\\S+)(\\.cpp$|\\.c$)";
 
-string PWD = getenv("HOME");
+string PWD = getenv("PWD");
 
 bool which(char *name, string *out);
 
@@ -104,7 +111,7 @@ void ex(string command)
 	int status;
 	bool QC_flag;
 
-	if (regcomp(&re, NON_BUILTIN.c_str(), REG_EXTENDED) != 0)
+	if (regcomp(&re, NON_BUILTIN_WITH_ARGS.c_str(), REG_EXTENDED) != 0)
 		return;
 
 	//re_nsub returns how many groups there are in re
@@ -165,18 +172,40 @@ void ex(string command)
 		//Parser constructor
 		Parser p(args);
 
-		//pid_t pid = fork();
-		//if(!pid) // child
-		// Execute it.
-		// Parse the arguments
-		(p.Parse(&arguments, path));
+		if (!p.Parse(&arguments, path))
+		{
+			// Then there are no arguments
+		}
 
 		char *environ[] = { NULL };
 
 		if (!QC_flag)
 		{
-			char *environ[] = { NULL };
-			execve(path.c_str(), arguments, environ);
+			pid_t child_pid = fork(); 
+			int child_status;
+
+			if(child_pid == 0) {
+				/* This is done by the child process. */
+
+				execv(path.c_str(), arguments);
+
+				/* If execv returns, it must have failed. */
+
+				printf("Unknown command\n");
+				exit(0);
+			}
+			else {
+				/* This is run by the parent.  Wait for the child
+				to terminate. */
+
+				pid_t tpid;
+				do {
+					tpid = wait(&child_status);
+					if(tpid != child_pid) return;
+				} while(tpid != child_pid);
+				
+				return;
+			}
 		}
 		else //QC_flag true
 		{
@@ -232,20 +261,91 @@ void ex(string command)
 	//free(arguments);
 }
 
+void optimizePwd()
+{
+	size_t off;
+	string oldPwd;
+	char *envp;
+
+	oldPwd = PWD;
+
+
+	//search through all directories in the PATH for the file
+	off = PWD.find_first_of("..");
+	while (off != string::npos)
+	{
+		string path_before;
+		string path_after;
+
+		//get the substring before "/.."
+		path_before = PWD.substr(0, off - 1);
+		path_after = PWD.substr(off + 2);
+		off = path_before.find_last_of("/");
+		path_before = PWD.substr(0, off);
+		PWD = path_before + path_after;
+		off = PWD.find_first_of("..");
+	}
+}
+
 void cd(string command)
 {
-	cout << "home dir is " << PWD << endl;
+	regex_t re;
+	int status;
+
+	if (regcomp(&re, CD.c_str(), REG_EXTENDED) != 0)
+		return;
+
+	//re_nsub returns how many groups there are in re
+	//we will have 2 groups for this regex.
+	size_t numGroups = 2;
+	regmatch_t *arguments = (regmatch_t *)malloc(sizeof(regmatch_t) * 2);
+
+	//regexec gets the substring offsets and stores it in arguments
+	status = regexec(&re, command.c_str(), numGroups, arguments, 0);
+
+	if(!status) // If regexec was successful
+	{
+		char *folder = (char *)malloc(255);
+		string path;
+		for (int x = 1; x < numGroups && arguments[x].rm_so != -1; x++)
+		{
+			size_t tempSize = (arguments[x].rm_eo - arguments[x].rm_so);
+
+			strncpy(folder, command.c_str() + arguments[x].rm_so, tempSize);
+			folder[tempSize] = 0;
+		}
+		PWD.append("/"); // add in the slash
+		if(check_exists(PWD.append(folder).c_str()))
+		{
+			// Set the current directory environment variable
+			// and force it to overwrite
+			setenv("PWD", PWD.c_str(), 1);
+			chdir(PWD.c_str());
+
+			// Remove any ..'s from path
+			optimizePwd();
+		}
+		else
+		{
+			PWD = PWD.substr(0, PWD.size() - 1); // trim off the /
+			cout << "Error: Directory does not exist" << endl;
+		}
+	}
+	else
+	{
+		cout << "Invalid directory" << endl;
+	}
 }
 
 int main(void)
 {
 
-	string prompt = "> "; // The prompt the user sees
 	bool done = false; // If the user wants to exit
 	string command; // The command that the user is inputting
 
 	do
 	{
+		string prompt = PWD + "> "; // The prompt the user sees
 		cout << prompt;
 		getline(cin, command);
 		done = isMatch(EXIT, command);
@@ -253,6 +353,10 @@ int main(void)
         if (isMatch(CD, command))
 		{
 			cd(command);
+		}
+        else if (isMatch(PWD_R, command))
+		{
+			cout << PWD << endl;
 		}
 		else if(!done) // not a builtin
 		{
