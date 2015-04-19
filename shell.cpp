@@ -241,9 +241,14 @@ void ex(string command)
 					int fd;
 
 					if(append)
+					{
 						fd = open(outfile, O_RDWR | O_CREAT | O_APPEND , S_IRUSR | S_IWUSR);
+					}
 					else
+					{
+						remove(outfile);
 						fd = open(outfile, O_RDWR | O_CREAT , S_IRUSR | S_IWUSR);
+					}
 
 
 					dup2(fd, 1);   // make stdout go to file
