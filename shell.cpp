@@ -12,12 +12,14 @@
 using namespace std;
 
 // Builtin regexes
-string CD = "^\\s*cd\\s+(\\S+)$";
-string PWD_R = "^\\s*pwd";
-string EXIT = "^\\s*exit";
-string NON_BUILTIN_WITH_ARGS = "^\\s*(\\S+)\\s*(.*)+$";
+string CD						= "^\\s*cd\\s+(\\S+)$";
+string PWD_R					= "^\\s*pwd";
+string EXIT						= "^\\s*exit";
+string NON_BUILTIN_WITH_ARGS    = "^\\s*(\\S+)\\s*(.*)+$";
 string NON_BUILTIN_WITHOUT_ARGS = "^\\s*(\\S+)\\s*$";
-string Q_COMPILE= "(\\S+)(\\.cpp$|\\.c$)";
+string Q_COMPILE				= "(\\S+)(\\.cpp$|\\.c$)";
+string REDIRECT_REPLACE			= "([^>]+)>\\s*(\\S+)$";
+string REDIRECT_APPEND			= "([^>]+)>>\\s*(\\S+)$";
 
 string PWD = getenv("PWD");
 
@@ -110,6 +112,50 @@ void ex(string command)
 	regex_t re;
 	int status;
 	bool QC_flag;
+	bool append = false;
+	char *outfile = (char *)malloc(255);
+
+	// set the first char of outfile to null terminator
+	outfile[0] = 0;
+
+	if(isMatch(REDIRECT_APPEND, command) || isMatch(REDIRECT_REPLACE, command))
+	{
+		append = !(isMatch(REDIRECT_REPLACE, command));
+
+		if (append && regcomp(&re, REDIRECT_APPEND.c_str(), REG_EXTENDED) != 0)
+			return;
+		else if (!append && regcomp(&re, REDIRECT_REPLACE.c_str(), REG_EXTENDED) != 0)
+			return;
+
+		//re_nsub returns how many groups there are in re
+		//add 1 for null
+		size_t numGroups = re.re_nsub + 1;
+		regmatch_t *arguments = (regmatch_t *)malloc(sizeof(regmatch_t) * numGroups);
+		
+
+		//regexec gets the substring offsets and stores it in arguments
+		status = regexec(&re, command.c_str(), numGroups, arguments, 0);
+
+		if(!status) // If regexec was successful
+		{
+			char *before = (char *)malloc(255);
+
+			for (int x = 1; x < numGroups && arguments[x].rm_so != -1; x++)
+			{
+				size_t tempSize = (arguments[x].rm_eo - arguments[x].rm_so);
+				char *tempStr;
+
+				if(x == 1) // Copy the first group into the executable buffer
+					tempStr = before;
+				else	   // Copy the other group into the args buffer
+					tempStr = outfile;
+
+				strncpy(tempStr, command.c_str() + arguments[x].rm_so, tempSize);
+				tempStr[tempSize] = 0;
+			}
+			command.assign(before);
+		}
+	}
 
 	if (regcomp(&re, NON_BUILTIN_WITH_ARGS.c_str(), REG_EXTENDED) != 0)
 		return;
@@ -118,6 +164,7 @@ void ex(string command)
 	//add 1 for null
 	size_t numGroups = re.re_nsub + 1;
 	regmatch_t *arguments = (regmatch_t *)malloc(sizeof(regmatch_t) * numGroups);
+	
 
 	//regexec gets the substring offsets and stores it in arguments
 	status = regexec(&re, command.c_str(), numGroups, arguments, 0);
@@ -127,6 +174,7 @@ void ex(string command)
 		char *executable = (char *)malloc(255);
 		char *args = (char *)malloc(255);
 		string path;
+
 		for (int x = 1; x < numGroups && arguments[x].rm_so != -1; x++)
 		{
 			size_t tempSize = (arguments[x].rm_eo - arguments[x].rm_so);
@@ -181,12 +229,28 @@ void ex(string command)
 
 		if (!QC_flag)
 		{
+
 			pid_t child_pid = fork(); 
 			int child_status;
 
 			if(child_pid == 0) {
 				/* This is done by the child process. */
 
+				if(outfile[0])
+				{
+					int fd;
+
+					if(append)
+						fd = open(outfile, O_RDWR | O_CREAT | O_APPEND , S_IRUSR | S_IWUSR);
+					else
+						fd = open(outfile, O_RDWR | O_CREAT , S_IRUSR | S_IWUSR);
+
+
+					dup2(fd, 1);   // make stdout go to file
+					dup2(fd, 2);   // make stderr go to file - you may choose to not do this
+
+					close(fd);     // fd no longer needed - the dup'ed handles are sufficient
+				}
 				execv(path.c_str(), arguments);
 
 				/* If execv returns, it must have failed. */
