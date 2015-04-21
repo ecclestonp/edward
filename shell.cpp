@@ -278,50 +278,77 @@ void ex(string command)
 		}
 		else //QC_flag true
 		{
-		// get arguments for the compiler
-			char **c_args = (char**)malloc(sizeof(char *) * numGroups);
-			c_args[0] = (char*)malloc(path.size() + 1);
-			strcpy(c_args[0], path.c_str());
+		// get last couple arguments for execution
+				char **c_args = (char**)malloc(4 * sizeof(char *));
+				char **e_args = (char**)malloc(( sizeof(arguments) + 2) * sizeof(char *));
+				string e_path = path;
+
+				cout << "after allocation" << endl;
+
+				e_args[0] = (char*)malloc(path.size()+1);
+				strcpy(e_args[0], path.c_str());
+				e_args[0][path.size()+1] = 0;
+
+				cout << "before for loop" << endl;
+				int x;
+				for(x = 1; x < sizeof(arguments); x++)
+				{
+
+					char *tempArg = (char *)malloc( strlen(arguments[x]) + 1);
+					strncpy(tempArg, (const char*) arguments[x], strlen(arguments[x]));
+					cout << "in loop 2" << endl;
+					tempArg[ strlen(arguments[x])] = 0;//add null terminator
+					cout << "in loop 3" << endl;
+					e_args[x] = tempArg;
+
+					cout << x << endl;
+
+				};
+
+				e_args[ ( sizeof(arguments) + 2) * sizeof(char *)] = NULL;
+
+
+
 		// get path of compiler
-			char *compiler =(char*)malloc(sizeof(char)* 3);
+			char *compiler =(char*)malloc(3 * sizeof(char));
+			cout << "allocated memory for *compiler." << endl;
 			strcpy(compiler, "g++");
-			//store the  path to the compiler in "path"
+		//which() function will store the  path to the compiler in "path"
 			if(which(compiler, &path))
 			{
-				// compile
-				execve(path.c_str(), c_args, environ);
-			}
+				cout << "got compiler path.." << path << endl;
 
-		// set up arguments for execution
+				
+			//load more arguments for compiling: path, name.C, -o, name, null
+				c_args[0] = (char*)malloc(path.size() + 1);
+				strcpy(c_args[0], path.c_str());
+				c_args[0][path.size()] = 0;
+
+				c_args[1] = (char*)malloc(8 * sizeof(char));
+				strcpy(c_args[1], "test.cpp");
+
+				c_args[2] = (char*)malloc(2 * sizeof(char));
+				strcpy(c_args[2], "-o");
+
+				c_args[3] = (char*)malloc(5 * sizeof(char));
+				strcpy(c_args[3], "test");
+				c_args[3][5 * sizeof(char)]=0;
+
+				c_args[4]= NULL; 
+
+				cout << "arguments are: "<< c_args[0] << " " << c_args[1] << " " << c_args[2] << " " << c_args[3] << endl;
+
+				// compile and execute
+				execv(path.c_str(), c_args);
+				cout << "compiled: " << path << " " << c_args << endl;
+				execv(e_path.c_str(), e_args);
+				cout << "executed: " << e_path << " " << e_args <<endl;
+		}
 			
 
 
 		// execute source file
 
-
-
-
-			// char **path_as_arg;
-			// char *compiler;
-			// strcpy(*path_as_arg, path.c_str());
-			// strcpy(compiler, "g++");
-			// string CompilerPath; //to save the path of the compiler
-			
-			// // Locate the full path to the executable and save the path to QCpath if it exists
-			// if(!which(compiler, &CompilerPath))
-			// {
-			// 	cout << "Could not locate compiler" << endl;
-			// 	return;
-			// }
-
-			// //Param CompilerPath -- gcc/g++
-			// //Param path -- path to sourcefile	
-			// //if compiling is successful then execute binary file 
-			// if(!execve(CompilerPath.c_str(), path_as_arg, environ)) 
-			// {	
-	
-			// 	execve(path.substr((size_t)QC_Offsets[0].rm_so, (size_t)QC_Offsets[0].rm_eo - QC_Offsets[0].rm_so).c_str(), arguments, environ);
-			// }			
 		}//end of Qcompile
 	}
 
