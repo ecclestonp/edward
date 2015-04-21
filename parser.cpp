@@ -3,7 +3,7 @@
 using namespace std;
 //args = string []	
 
-Parser::Parser(char *argStrn)
+Parser::Parser(const char *argStrn)
 {
 	string temp(argStrn);
 	size_t off;

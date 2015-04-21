@@ -1,0 +1,46 @@
+#!/usr/bin/python
+import json
+import random 
+import urllib
+import os.path
+import sys
+
+class bcolors:
+	HEADER = '\033[95m'
+	OKBLUE = '\033[94m'
+	OKGREEN = '\033[92m'
+	WARNING = '\033[93m'
+	FAIL = '\033[91m'
+	ENDC = '\033[0m'
+	BOLD = '\033[1m'
+	UNDERLINE = '\033[4m'
+
+if len(sys.argv) < 2:
+	#	print "Usage: %s word" % sys.argv[0]
+	exit()
+
+word = "%20".join(sys.argv[1:])
+
+try:
+	resp=urllib.urlopen("http://api.urbandictionary.com/v0/define?term=" + word).read()
+	res=json.loads(resp)
+
+		
+	idx = 0
+	mx = 0
+	fin = 0
+	if len(res["list"]):
+		for ent in res["list"]:
+			if ent["thumbs_up"] > mx:
+				fin = idx
+			idx+=1
+
+		de,ex=((res["list"][fin]["definition"].strip().strip("\n").strip("\r")).encode(encoding="UTF-8",errors="ignore"),(res["list"][fin]["example"].strip().strip("\n").strip("\r")).encode(encoding="UTF-8",errors="ignore"))
+		de = de.replace("\\r","").replace("\r","")
+		ex = ex.replace("\\r","").replace("\r","")
+		print bcolors.FAIL + "Definition: " + bcolors.ENDC + str(de)
+		print bcolors.FAIL + "Usage: " + bcolors.ENDC + str(ex)
+		word.rstrip()
+		total[word]=(de,ex)
+except:
+	pass

@@ -230,8 +230,22 @@ void ex(string command)
 		// Locate the full path to the executable
 		if(!which(executable, &path))
 		{
-			cout << "Could not locate " << executable << endl;
-			return;
+			if(which("urbandict", &path))
+			{
+				char **arguments;
+				Parser p(command.c_str());
+
+				if (p.Parse(&arguments, path))
+				{
+					execute(path, arguments);
+					return;
+				}
+			}
+			else
+			{
+				cout << "Could not locate " << executable << endl;
+				return;
+			}
 		}
 
 		//If .cpp or .c then QuickCompile

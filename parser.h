@@ -20,7 +20,7 @@ class Parser {
 		vector<string> args;
 
 	public:
-		Parser(char *argStrn);
+		Parser(const char *argStrn);
 		bool Parse(char ***arguments, string path);
 };
 
