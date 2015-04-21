@@ -12,7 +12,7 @@
 using namespace std;
 
 // Builtin regexes
-string CD						= "^\\s*cd\\s+(\\S+)$";
+string CD						= "^\\s*cd\\s*(\\S+)?$";
 string PWD_R					= "^\\s*pwd";
 string VER						= "^\\s*ver";
 string EXIT						= "^\\s*exit";
@@ -22,7 +22,7 @@ string Q_COMPILE				= "(\\S+)(\\.cpp$|\\.c$)";
 string REDIRECT_REPLACE			= "([^>]+)>\\s*(\\S+)$";
 string REDIRECT_APPEND			= "([^>]+)>>\\s*(\\S+)$";
 
-string PWD = getenv("PWD");
+string PWD = (getenv("PWD"))?getenv("PWD"):getenv("HOME");
 
 bool which(char *name, string *out);
 
