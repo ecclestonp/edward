@@ -25,6 +25,34 @@ string PWD = getenv("PWD");
 
 bool which(char *name, string *out);
 
+void execute(string path, char ** arguments)
+{
+	pid_t child_pid = fork(); 
+	int child_status;
+
+	if(child_pid == 0) {
+		execv(path.c_str(), arguments);
+
+		/* If execv returns, it must have failed. */
+
+		printf("Unknown command\n");
+		exit(0);
+	}
+	else {
+		/* This is run by the parent.  Wait for the child
+		to terminate. */
+
+		pid_t tpid;
+		do {
+			tpid = wait(&child_status);
+			if(tpid != child_pid) return;
+		} while(tpid != child_pid);
+		
+		return;
+	}
+
+}
+
 bool isMatch(string reg, string command)
 {
 	regex_t re;
@@ -283,40 +311,19 @@ void ex(string command)
 				char **e_args = (char**)malloc(( sizeof(arguments) + 2) * sizeof(char *));
 				string e_path = path;
 
-				cout << "after allocation" << endl;
-
 				e_args[0] = (char*)malloc(path.size()+1);
 				strcpy(e_args[0], path.c_str());
 				e_args[0][path.size()+1] = 0;
-
-				cout << "before for loop" << endl;
-				int x;
-				for(x = 1; x < sizeof(arguments); x++)
-				{
-
-					char *tempArg = (char *)malloc( strlen(arguments[x]) + 1);
-					strncpy(tempArg, (const char*) arguments[x], strlen(arguments[x]));
-					cout << "in loop 2" << endl;
-					tempArg[ strlen(arguments[x])] = 0;//add null terminator
-					cout << "in loop 3" << endl;
-					e_args[x] = tempArg;
-
-					cout << x << endl;
-
-				};
-
 				e_args[ ( sizeof(arguments) + 2) * sizeof(char *)] = NULL;
 
 
 
 		// get path of compiler
 			char *compiler =(char*)malloc(3 * sizeof(char));
-			cout << "allocated memory for *compiler." << endl;
 			strcpy(compiler, "g++");
 		//which() function will store the  path to the compiler in "path"
 			if(which(compiler, &path))
 			{
-				cout << "got compiler path.." << path << endl;
 
 				
 			//load more arguments for compiling: path, name.C, -o, name, null
@@ -325,24 +332,26 @@ void ex(string command)
 				c_args[0][path.size()] = 0;
 
 				c_args[1] = (char*)malloc(8 * sizeof(char));
-				strcpy(c_args[1], "test.cpp");
+				strcpy(c_args[1], executable);
 
 				c_args[2] = (char*)malloc(2 * sizeof(char));
 				strcpy(c_args[2], "-o");
 
 				c_args[3] = (char*)malloc(5 * sizeof(char));
-				strcpy(c_args[3], "test");
+				strcpy(c_args[3], ".test");
 				c_args[3][5 * sizeof(char)]=0;
 
 				c_args[4]= NULL; 
 
-				cout << "arguments are: "<< c_args[0] << " " << c_args[1] << " " << c_args[2] << " " << c_args[3] << endl;
 
 				// compile and execute
-				execv(path.c_str(), c_args);
-				cout << "compiled: " << path << " " << c_args << endl;
-				execv(e_path.c_str(), e_args);
-				cout << "executed: " << e_path << " " << e_args <<endl;
+				execute(path, c_args);
+
+				char **final_args;
+				Parser p(args);
+
+				p.Parse(&final_args, "./.test");
+				execute("./.test", final_args);
 		}
 			
 
