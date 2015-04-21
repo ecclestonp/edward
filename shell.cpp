@@ -14,6 +14,7 @@ using namespace std;
 // Builtin regexes
 string CD						= "^\\s*cd\\s+(\\S+)$";
 string PWD_R					= "^\\s*pwd";
+string VER						= "^\\s*ver";
 string EXIT						= "^\\s*exit";
 string NON_BUILTIN_WITH_ARGS    = "^\\s*(\\S+)\\s*(.*)+$";
 string NON_BUILTIN_WITHOUT_ARGS = "^\\s*(\\S+)\\s*$";
@@ -483,6 +484,14 @@ int main(void)
         if (isMatch(CD, command))
 		{
 			cd(command);
+		}
+        else if (isMatch(VER, command))
+		{
+			cout << "Team Edward Shell" << endl;
+			cout << "Version 1.0" << endl;
+			cout << "Written by: Paul Eccleston," << endl;
+			cout << "Ina Carter," << endl;
+			cout << "and Christopher Ray" << endl;
 		}
         else if (isMatch(PWD_R, command))
 		{
