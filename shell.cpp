@@ -69,12 +69,22 @@ bool isMatch(string reg, string command)
 	return !status;
 }
 
+bool is_file(const char *name)
+{
+	struct stat filestat;
+
+	stat(name, &filestat) == 0;
+
+	return S_ISREG(filestat.st_mode);
+}
+
 bool check_exists(const char *name)
 {
 	struct stat filestat;
 
 	return (stat(name, &filestat) == 0) ? true : false;
 }
+
 
 bool which(char *name, string *out)
 {
@@ -419,8 +429,9 @@ void cd(string command)
 			strncpy(folder, command.c_str() + arguments[x].rm_so, tempSize);
 			folder[tempSize] = 0;
 		}
+		string old_pwd = PWD;
 		PWD.append("/"); // add in the slash
-		if(check_exists(PWD.append(folder).c_str()))
+		if(check_exists(PWD.append(folder).c_str())&& !is_file(PWD.c_str()))
 		{
 			// Set the current directory environment variable
 			// and force it to overwrite
@@ -432,7 +443,7 @@ void cd(string command)
 		}
 		else
 		{
-			PWD = PWD.substr(0, PWD.size() - 1); // trim off the /
+			PWD = old_pwd;
 			cout << "Error: Directory does not exist" << endl;
 		}
 	}
